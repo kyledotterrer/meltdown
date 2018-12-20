@@ -29,9 +29,23 @@ testaccess:
 exception: 
 	gcc -Wall -Werror -pedantic -march=native  exception.c -o exception
 
-# interesting 
 ooe: 
 	gcc -Wall -Werror -pedantic -march=native  ooe.c -o ooe
+
+vanilla: 
+	gcc -Wall -Werror -pedantic -march=native  vanilla.c -o vanilla
+
+improved: 
+	gcc -Wall -Werror -pedantic -march=native  improved.c -o improved
+
+asm: 
+	gcc -Wall -Werror -pedantic -march=native  asm.c -o asm
+
+practical: 
+	gcc -Wall -Werror -pedantic -march=native  practical.c -o practical
+
+full:
+	gcc -Wall -Werror -pedantic -march=native  full.c -o full
 
 clean:
 	rm -f *.o
@@ -42,6 +56,11 @@ clean:
 	rm -f testaccess 
 	rm -f exception 
 	rm -f ooe 
+	rm -f vanilla
+	rm -f improved 
+	rm -f asm 
+	rm -f practical
+	rm -f full 
 	make -C /lib/modules/$(KVERS)/build M=$(CURDIR) clean
 
 .PHONY: clean

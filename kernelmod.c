@@ -15,12 +15,20 @@
 #include <linux/seq_file.h>
 #include <linux/uaccess.h>
 
+/* ----------------------------------------------------------------------------
+   Constants
+*/
+
 #define SECRET_LEN 6
 
 static char   secret[SECRET_LEN] = {'S','E', 'C', 'R', 'E', 'T'};
 
 static struct proc_dir_entry *secret_entry;
 static char*  secret_buffer;
+
+/* ----------------------------------------------------------------------------
+   Module Definition 
+*/
 
 static int test_proc_open(struct inode *inode, struct file *file) {
    #if LINUX_VERSION_CODE <= KERNEL_VERSION(4,0,0)
@@ -60,6 +68,10 @@ static __init int test_proc_init(void) {
 static __exit void test_proc_cleanup(void) {
    remove_proc_entry("secret_data", NULL);
 }
+
+/* ----------------------------------------------------------------------------
+   Macros 
+*/
 
 module_init(test_proc_init);
 module_exit(test_proc_cleanup);

@@ -10,7 +10,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define KERNEL_ADDR 0xf8813000
+/* ----------------------------------------------------------------------------
+	Constants
+*/
+
+// NOTE: this address will change each time kernal module is reinstalled 
+#define KERNEL_ADDR 0xf8d73000
+
+/* ----------------------------------------------------------------------------
+	Main 
+*/
 
 int main(void) {
 	char *kernel_data_addr = (char *) KERNEL_ADDR; 

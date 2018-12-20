@@ -14,7 +14,8 @@
 #include <signal.h>
 
 // address of secret data in kernel memory 
-#define KERNEL_ADDR 0xf8813000
+// NOTE: this address will change each time kernal module is reinstalled 
+#define KERNEL_ADDR 0xf8d73000
 
 static sigjmp_buf jbuf;
 
