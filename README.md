@@ -19,6 +19,10 @@ In order of integration:
 - `practical.c` coming full circle on the single-byte attack by running the attack over many iteration to reduce noise. 
 - `full.c` extension of the practical attack to read arbitrary-size regions of kernel memory. 
 
+### Environment
+
+Executes successfully in the following environment: Ubuntu 16.04 (32-bit) Linux kernel v4.8.0-36-generic 
+
 ### Installing the Kernel Module 
 
 One of the very first steps in setting up this (admittedly simplifed) version of the Meltdown attack is to compile and install the kernel module implemented in `kernelmod.c`. To do so, first compile the module
